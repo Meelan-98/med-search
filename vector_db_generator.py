@@ -1,65 +1,49 @@
-import fitz  # PyMuPDF
-from sentence_transformers import SentenceTransformer
-import faiss
-import numpy as np
+from PyPDF2 import PdfReader
+from langchain.embeddings import HuggingFaceEmbeddings
+from langchain.text_splitter import CharacterTextSplitter
+from langchain.vectorstores import FAISS
 
 
-# Step 1: Read and extract text from the PDF
-def extract_text_from_pdf(pdf_path):
-    doc = fitz.open(pdf_path)
-    text = ""
-    for page_num in range(doc.page_count):
-        page = doc.load_page(page_num)
-        text += page.get_text()
-    return text
+def load_embedding_model(model_path, normalize_embedding=True):
+    return HuggingFaceEmbeddings(
+        model_name=model_path,
+        model_kwargs={"device": "cpu"},
+        encode_kwargs={"normalize_embeddings": normalize_embedding},
+    )
 
 
-# Step 2: Split text into sentences
-def split_into_sentences(text):
-    # Using a simple sentence split. You may use more sophisticated methods if necessary
-    sentences = text.split(". ")
-    sentences = [sentence.strip() for sentence in sentences if sentence]
-    return sentences
+embeddings = load_embedding_model(model_path="all-MiniLM-L6-v2")
 
 
-# Step 3: Encode sentences using SentenceTransformer
-def encode_sentences(sentences, model_name="sentence-transformers/all-MiniLM-L6-v2"):
-    model = SentenceTransformer(model_name)
-    embeddings = model.encode(sentences)
-    return embeddings
+def split_paragraphs(rawText):
+    text_splitter = CharacterTextSplitter(
+        separator="\n",
+        chunk_size=1000,
+        chunk_overlap=200,
+        length_function=len,
+        is_separator_regex=False,
+    )
+
+    return text_splitter.split_text(rawText)
 
 
-# Step 4: Create a FAISS vector database
-def create_faiss_index(embeddings):
-    dimension = embeddings.shape[1]
-    index = faiss.IndexFlatL2(dimension)
-    index.add(embeddings)
-    return index
+def load_pdfs(pdfs):
+    text_chunks = []
+
+    for pdf in pdfs:
+        reader = PdfReader(pdf)
+        for page in reader.pages:
+            raw = page.extract_text()
+            chunks = split_paragraphs(raw)
+            text_chunks += chunks
+    return text_chunks
 
 
-# # Step 5: Save FAISS index to a file
-# def save_faiss_index(index, file_path):
-#     faiss.write_index(index, file_path)
+list_of_pdfs = [
+    "documents/hrm.pdf",
+]
+text_chunks = load_pdfs(list_of_pdfs)
 
+store = FAISS.from_texts(text_chunks, embeddings)
 
-def save_faiss_data(index, sentences, index_file_path, sentences_file_path):
-    faiss.write_index(index, index_file_path)
-    np.save(sentences_file_path, np.array(sentences))
-
-
-# Main function to create the FAISS vector DB from a PDF
-def create_faiss_db_from_pdf(pdf_path, index_file_path, sentence_file_path):
-    text = extract_text_from_pdf(pdf_path)
-    sentences = split_into_sentences(text)
-    embeddings = encode_sentences(sentences)
-    index = create_faiss_index(embeddings)
-    save_faiss_data(index, sentences, index_file_path, sentence_file_path)
-
-
-if __name__ == "__main__":
-    pdf_path = "documents/kandc.pdf"
-    index_file_path = "kandc_index.index"
-    sentences_file_path = "kandc.npy"
-
-    # Create and save the FAISS index
-    create_faiss_db_from_pdf(pdf_path, index_file_path, sentences_file_path)
+store.save_local("./vectorstore")

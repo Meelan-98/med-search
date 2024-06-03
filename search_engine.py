@@ -1,27 +1,26 @@
-from sentence_transformers import SentenceTransformer
-import faiss
-import numpy as np
+from langchain.vectorstores import FAISS
+from langchain.embeddings import HuggingFaceEmbeddings
 
 
-def load_faiss_data(index_file_path, sentences_file_path):
-    index = faiss.read_index(index_file_path)
-    sentences = np.load(sentences_file_path, allow_pickle=True).tolist()
-    return index, sentences
+def load_embedding_model(model_path, normalize_embedding=True):
+    return HuggingFaceEmbeddings(
+        model_name=model_path,
+        model_kwargs={"device": "cpu"},
+        encode_kwargs={"normalize_embeddings": normalize_embedding},
+    )
 
 
-index_file_path = "kandc_index.index"
-sentences_file_path = "kandc.npy"
+embeddings = load_embedding_model(model_path="all-MiniLM-L6-v2")
+
+# Load the FAISS vector store from the saved directory
+vector_store = FAISS.load_local(
+    "vectorstore", embeddings, allow_dangerous_deserialization=True
+)
 
 
-index, sentences = load_faiss_data(index_file_path, sentences_file_path)
+# Define your query
+query = "Define HRM"
 
-# Example: search for similar sentences
-query = "epileptic seizure can be"
-model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-query_embedding = model.encode([query])
+similar_chunks = vector_store.similarity_search(query)
 
-D, I = index.search(query_embedding, k=5)  # Search for the 5 nearest neighbors
-print(f"Query: {query}")
-print("Top 5 similar sentences:")
-for idx in I[0]:
-    print(sentences[idx], "\n")
+print(similar_chunks)
