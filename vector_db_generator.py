@@ -1,7 +1,7 @@
 from PyPDF2 import PdfReader
-from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.text_splitter import CharacterTextSplitter
-from langchain.vectorstores import FAISS
+from langchain_community.vectorstores import FAISS
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
 
 def load_embedding_model(model_path, normalize_embedding=True):

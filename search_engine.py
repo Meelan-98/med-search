@@ -1,5 +1,6 @@
-from langchain.vectorstores import FAISS
-from langchain.embeddings import HuggingFaceEmbeddings
+from langchain_community.vectorstores import FAISS
+from langchain_community.embeddings import HuggingFaceEmbeddings
+import re
 
 
 def load_embedding_model(model_path, normalize_embedding=True):
@@ -19,8 +20,11 @@ vector_store = FAISS.load_local(
 
 
 # Define your query
-query = "Define HRM"
+query = "Primary diabetes is classified"
 
-search_results = vector_store.similarity_search(query)
+search_results = vector_store.similarity_search(query, 5)
 
-print(search_results)
+for result in search_results:
+    cleaned_text = re.sub(r"\s+", " ", result.page_content).strip()
+    cleaned_text = re.sub(r"^\s*-\s*", "", cleaned_text, flags=re.MULTILINE)
+    print(cleaned_text, "\n")
