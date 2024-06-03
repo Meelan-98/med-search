@@ -40,10 +40,10 @@ def load_pdfs(pdfs):
 
 
 list_of_pdfs = [
-    "documents/hrm.pdf",
+    "documents/kandc.pdf",
 ]
 text_chunks = load_pdfs(list_of_pdfs)
 
 store = FAISS.from_texts(text_chunks, embeddings)
 
-store.save_local("./vectorstore")
+store.save_local("./vector_spaces/kandc_store")

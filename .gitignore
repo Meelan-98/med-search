@@ -160,6 +160,5 @@ cython_debug/
 #.idea/
 
 documents
-kandc_index.index
-kandc.npy
+vector_spaces
 

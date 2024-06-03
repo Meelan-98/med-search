@@ -14,13 +14,13 @@ embeddings = load_embedding_model(model_path="all-MiniLM-L6-v2")
 
 # Load the FAISS vector store from the saved directory
 vector_store = FAISS.load_local(
-    "vectorstore", embeddings, allow_dangerous_deserialization=True
+    "vector_spaces/kandc_store", embeddings, allow_dangerous_deserialization=True
 )
 
 
 # Define your query
 query = "Define HRM"
 
-similar_chunks = vector_store.similarity_search(query)
+search_results = vector_store.similarity_search(query)
 
-print(similar_chunks)
+print(search_results)
